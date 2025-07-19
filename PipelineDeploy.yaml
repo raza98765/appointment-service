@@ -1,0 +1,43 @@
+trigger:
+- main  
+
+variables:
+  IMAGE_NAME: 'myapp'  # 
+  TAG: '$(Build.BuildId)' 
+  acrName: 'HCLACR'
+  
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- task: Docker@2
+  displayName: Build and Push Docker Image
+  inputs:
+    containerRegistry: HCLACR)'
+    repository: '$(IMAGE_NAME)'
+    command: 'buildAndPush'
+    Dockerfile: '**/Dockerfile' 
+    tags: |
+      $(TAG)
+      latest
+- stage: Deploy
+  displayName: Deploy to AKS
+   dependsOn: Build
+    jobs:
+     - job: Deploy
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: Kubernetes@1
+      displayName: Deploy to AKS
+      inputs:
+        connectionType: 'Azure Resource Manager'
+        azureSubscription: 'azure'
+        azureResourceGroup: '52065057-atul'
+        kubernetesCluster: 'yAKS'
+        namespace: 'default'
+        command: apply
+        useConfigurationFile: true
+        configuration: 'manifests/deploy.yaml'
+       
